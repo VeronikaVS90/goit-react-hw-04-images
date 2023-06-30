@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { Component } from 'react';
+import { useState } from 'react';
 import { BsSearch } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 
@@ -10,18 +10,16 @@ import {
     FormInput,
 } from './Searchbar.styled';
 
-export class Searchbar extends Component {
-    state = {
-        query: '',
-    };
+export const Searchbar = ({ onSubmit }) => {
+  const [query, setQuery] = useState('');
 
-    handleInputChange = event => {
-        this.setState({ query: event.currentTarget.value });
-    };
+  const handleInputChange = event => {
+    setQuery(event.currentTarget.value);
+  };
 
-    onSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
-    if (this.state.query.trim() === '') {
+    if (query.trim() === '') {
       toast.error('Please enter search query', {
         position: 'top-center',
         autoClose: 3000,
@@ -34,29 +32,27 @@ export class Searchbar extends Component {
       });
       return;
     }
-    this.props.onSubmit(this.state.query);
+    onSubmit(query);
   };
 
-  render() {
-    return (
-      <Bar>
-        <Form onSubmit={this.onSubmit}>
-          <FormButton type="submit">
-            <BsSearch size="100%" />
-          </FormButton>
-          <FormInput
-            type="text"
-            autocomplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-            value={this.state.query}
-            onChange={this.handleInputChange}
-          />
-        </Form>
-      </Bar>
-    );
-  }
-}
+  return (
+    <Bar>
+      <Form onSubmit={handleSubmit}>
+        <FormButton type="submit">
+          <BsSearch size="100%" />
+        </FormButton>
+        <FormInput
+          type="text"
+          autocomplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+          value={query}
+          onChange={handleInputChange}
+        />
+      </Form>
+    </Bar>
+  );
+};
 
 Searchbar.propTypes = {
   onSubmit: PropTypes.func.isRequired,

@@ -2,21 +2,19 @@ import { Searchbar } from 'components/Searchbar/Searchbar';
 import { AppWrapper } from './App.styled';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { LoadMoreButton } from 'components/LoadMoreButton/LoadMoreButton';
-import { PureComponent } from 'react';
+import { useState, useEffect } from 'react';
 import { getImages } from 'api/getImages';
 import { Loader } from 'components/Loader/Loader';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-export class App extends PureComponent {
-  state = {
-    images: [],
-    page: null,
-    searchQuery: '',
-    status: 'idle',
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [status, setStatus] = useState('idle');
 
-  notification = (message = 'Something went wrong...') =>
+  const notification = (message = 'Something went wrong...') =>
     toast.error(message, {
       position: 'top-center',
       autoClose: 3000,
@@ -28,75 +26,65 @@ export class App extends PureComponent {
       theme: 'dark',
     });
 
-  async componentDidUpdate(_, prevState) {
-    let { searchQuery, page, status } = this.state;
+  useEffect(() => {
+    (async () => {
+      if (!searchQuery) {
+        return;
+      }
 
-    if (prevState.page !== page || prevState.searchQuery !== searchQuery) {
       try {
-        this.setState({ status: 'pending' });
+        let currentStatus = 'pending';
+        setStatus(currentStatus);
         const newImages = await getImages(searchQuery, page);
 
         switch (newImages.length) {
           case 0:
-            this.notification(
-              `There are no results for "${searchQuery}" request.`
-            );
-            status = 'rejected';
+            notification(`There are no results for "${searchQuery}" request.`);
+            currentStatus = 'rejected';
             break;
           case 12:
-            status = 'resolved';
+            currentStatus = 'resolved';
             break;
           default:
-            status = 'idle';
+            currentStatus = 'idle';
             break;
         }
 
-        this.setState(prevState => {
-          const images = [...prevState.images, ...newImages];
-          return {
-            images,
-            status,
-          };
-        });
+        setImages(prevImages => [...prevImages, ...newImages]);
+        setStatus(currentStatus);
       } catch (error) {
         console.log(error.message);
-        this.notification();
-        this.setState({
-          status: 'rejected',
-        });
+        notification();
+        setStatus('rejected');
       }
-    }
-  }
+    })();
+  }, [page, searchQuery]);
 
-  handleFormSubmit = searchQuery => {
-    if (searchQuery === this.state.searchQuery) {
-      this.notification(`You are already looking at "${searchQuery}"`);
-
+  const handleFormSubmit = currentQuery => {
+    if (currentQuery === searchQuery) {
+      notification(`You are already looking at "${currentQuery}"`);
       return;
     }
 
-    this.setState({ searchQuery, page: 1, images: [] });
+    setSearchQuery(currentQuery);
+    setPage(1);
+    setImages([]);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const handleLoadMore = () => {
+    setPage(page + 1);
   };
-
-  render() {
-    const { images, status } = this.state;
 
     return (
       <AppWrapper>
-        <Searchbar onSubmit={this.handleFormSubmit} />
+        <Searchbar onSubmit={handleFormSubmit} />
         {images.length > 0 && <ImageGallery images={images} />}
         {status === 'pending' && <Loader />}
         {status === 'resolved' && (
-          <LoadMoreButton onClick={this.handleLoadMore} />
+          <LoadMoreButton onClick={handleLoadMore} />
         )}
         <ToastContainer />
       </AppWrapper>
     );
-  }
-}
+  };
+
